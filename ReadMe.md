@@ -25,7 +25,7 @@ pip install -r requirements.txt
 1. Check for terminal and serial devices connected to your device 
 ls /dev/tty.*
 - It will return multiple terminal and serial connection
-- If using the usb to serial check for tty.usbserial-XXXX - "XXX" unique number assigned by the macOS 
+- If using the usb to serial check for tty.usbserial-XXXX - "XXXX" unique number assigned by the macOS 
 - Output will be more like dev/tty.usbserial-1420 
 - This value is used in the script to establish connection between script and device via console connection
 
