@@ -38,9 +38,9 @@ with ConnectHandler(**device) as conn:
     # Check for the how many VLANs needed and ask for the user input and then create the VLANs on the device.
     vlan_count = int(input("How many VLANs do you want to create? "))
     for i in range(vlan_count):
-        input("Do you want to create VLAN? (y/n) : ")
-        if input().lower() != 'y':
-            break
+        confirm = input(f"Do you want to create VLAN {i + 1}? (y/n) : ")
+        if confirm.lower() != 'y':
+            continue
         vlan_id = input(f"Enter the VLAN ID for VLAN {i+1}: ")
         vlan_name = input(f"Enter the VLAN Name for VLAN {i+1}: ")
         description = input(f"Enter the description for VLAN {i+1}: ")
