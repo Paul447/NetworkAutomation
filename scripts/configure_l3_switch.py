@@ -1,14 +1,14 @@
 """
 configure_l3_switch.py
 ----------------------
-Automates full configuration for a Cisco Layer 3 switch via serial/console.
+Automates full configuration for a Cisco Layer 3 switch.
 
 Layer 3 switches can route traffic between VLANs using Switched Virtual
 Interfaces (SVIs) — virtual Layer 3 interfaces assigned to each VLAN.
 This eliminates the need for a separate router for inter-VLAN routing.
 
 What this script does (in order):
-  1. Connects to the switch over a USB-to-serial console cable using netmiko
+  1. Asks how you want to connect (physical serial or telnet) via connection_handler
   2. Enters privileged exec mode (enable)
   3. Prompts for a hostname and sets it on the device
   4. Prompts for an IP domain name and configures it (required for SSH key gen)
@@ -18,35 +18,17 @@ What this script does (in order):
   7. Optionally configures a static default route to an upstream gateway
   8. Saves the running configuration to NVRAM
 
-Before running:
-  - Run scripts/find_serial_ports.py to find your port (e.g. /dev/tty.usbserial-1130)
-  - Update the 'port' value in the device dictionary below
-  - Uncomment username/password/secret below if the device requires them
-
 Usage:
     python scripts/configure_l3_switch.py
 """
 
-from netmiko import ConnectHandler
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
 
-# ---------------------------------------------------------------------------
-# Device connection parameters
-# Update 'port' to match your USB-to-serial adapter.
-# Run scripts/find_serial_ports.py to find the correct value.
-# ---------------------------------------------------------------------------
-device = {
-    "device_type": "cisco_ios_serial",
-    "serial_settings": {
-        "port": "/dev/tty.usbserial-1130",  # <-- update this
-        "baudrate": 9600,                   # default for Cisco console ports
-    },
-    # Uncomment if the device requires authentication:
-    # "username": "admin",
-    # "password": "ABcd1234!",
-    # "secret":   "ABcd1234!",  # enable/privileged exec password
-}
+from connection_handler import get_connection
 
-with ConnectHandler(**device) as conn:
+with get_connection() as conn:
 
     # Enter privileged exec mode so we can make configuration changes.
     conn.enable()

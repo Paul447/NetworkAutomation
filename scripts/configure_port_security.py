@@ -1,7 +1,7 @@
 """
 configure_port_security.py
 --------------------------
-Automates port security configuration on Cisco switchport interfaces via serial/console.
+Automates port security configuration on Cisco switchport interfaces.
 
 Port security restricts which MAC addresses are allowed on a switchport.
 If an unauthorized device connects, the switch takes a configured action
@@ -9,7 +9,7 @@ If an unauthorized device connects, the switch takes a configured action
 violation mode chosen.
 
 What this script does:
-  1. Connects to the switch over a USB-to-serial console cable using netmiko
+  1. Asks how you want to connect (physical serial or telnet) via connection_handler
   2. Enters privileged exec mode (enable)
   3. Prompts for a comma-separated list of interfaces to secure
   4. For each interface, interactively configures:
@@ -31,32 +31,16 @@ Violation modes explained:
 
 Before running:
   - Interfaces must be access ports (not trunks) for port security to apply
-  - Run scripts/find_serial_ports.py to find your port (e.g. /dev/tty.usbserial-1130)
-  - Update the 'port' value in the device dictionary below
-  - Uncomment username/password/secret below if the device requires them
 
 Usage:
     python scripts/configure_port_security.py
 """
 
-from netmiko import ConnectHandler
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
 
-# ---------------------------------------------------------------------------
-# Device connection parameters
-# Update 'port' to match your USB-to-serial adapter.
-# Run scripts/find_serial_ports.py to find the correct value.
-# ---------------------------------------------------------------------------
-device = {
-    "device_type": "cisco_ios_serial",
-    "serial_settings": {
-        "port": "/dev/tty.usbserial-1130",  # <-- update this
-        "baudrate": 9600,                   # default for Cisco console ports
-    },
-    # Uncomment if the device requires authentication:
-    # "username": "admin",
-    # "password": "ABcd1234!",
-    # "secret":   "ABcd1234!",  # enable/privileged exec password
-}
+from connection_handler import get_connection
 
 VALID_VIOLATION_MODES = ("shutdown", "restrict", "protect")
 
@@ -108,7 +92,7 @@ def configure_port_security_on_interface(conn, interface: str) -> None:
           f"max={max_macs}, violation={violation_mode}, sticky=enabled.")
 
 
-with ConnectHandler(**device) as conn:
+with get_connection() as conn:
 
     # Enter privileged exec mode so we can make configuration changes.
     conn.enable()
