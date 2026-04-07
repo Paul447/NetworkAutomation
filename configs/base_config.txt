@@ -1,8 +1,8 @@
 ip domain-name jackmid.lib.edu
 username admin secret ABcd1234!
-line console 0 
+line console 0
 password ABcd1234!
 login
-exit 
+exit
 enable secret ABcd1234!
 service password-encryption
