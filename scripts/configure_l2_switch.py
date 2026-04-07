@@ -1,17 +1,22 @@
 """
-Layer 2 Switch Configuration Script
+configure_l2_switch.py
+----------------------
+Automates base configuration for a Cisco Layer 2 switch via serial/console.
 
-Automates basic L2 switch setup via a serial/console connection:
-  - Sets the device hostname
-  - Applies base config from configs/base_config.txt
-    (domain name, local user, console/enable passwords, service password-encryption)
-  - Creates VLANs interactively (user provides VLAN ID, name, and description)
-  - Saves the running configuration
+What this script does (in order):
+  1. Connects to the switch over a USB-to-serial console cable using netmiko
+  2. Enters privileged exec mode (enable)
+  3. Prompts for a hostname and sets it on the device
+  4. Applies configs/base_config.txt — sets domain name, local credentials,
+     console password, enable secret, and service password-encryption
+  5. Interactively creates VLANs (user provides VLAN ID, name, description)
+  6. Saves the running configuration to NVRAM (write memory)
 
-Requirements:
-  - USB-to-serial console cable connected to the switch
-  - Run scripts/find_serial_ports.py to find the correct port (e.g. /dev/tty.usbserial-1130)
-  - Update the 'port' value in the device dictionary below before running
+Before running:
+  - Run scripts/find_serial_ports.py to find your port (e.g. /dev/tty.usbserial-1130)
+  - Update the 'port' value in the device dictionary below
+  - Edit configs/base_config.txt to match your credentials and domain name
+  - Uncomment username/password/secret below if the device requires them
 
 Usage:
     python scripts/configure_l2_switch.py
@@ -19,46 +24,54 @@ Usage:
 
 from netmiko import ConnectHandler
 
-# Device connection parameters.
-# Update 'port' to match your USB-to-serial adapter (run find_serial_ports.py to check).
+# ---------------------------------------------------------------------------
+# Device connection parameters
+# Update 'port' to match your USB-to-serial adapter.
+# Run scripts/find_serial_ports.py to find the correct value.
+# ---------------------------------------------------------------------------
 device = {
     "device_type": "cisco_ios_serial",
     "serial_settings": {
-        "port": "/dev/tty.usbserial-1130",
-        "baudrate": 9600,
+        "port": "/dev/tty.usbserial-1130",  # <-- update this
+        "baudrate": 9600,                   # default for Cisco console ports
     },
-    # Uncomment and fill in if the device requires credentials:
+    # Uncomment if the device requires authentication:
     # "username": "admin",
     # "password": "ABcd1234!",
-    # "secret": "ABcd1234!",
+    # "secret":   "ABcd1234!",  # enable/privileged exec password
 }
 
 with ConnectHandler(**device) as conn:
+
+    # Enter privileged exec mode so we can make configuration changes.
     conn.enable()
 
-    # -- Hostname ------------------------------------------------------------------
+    # -- Hostname ----------------------------------------------------------------
     hostname = input("Hostname for this device: ").strip()
     conn.send_config_set([f"hostname {hostname}"])
-    # Update netmiko's internal prompt to match the new hostname so it doesn't
-    # time out waiting for a prompt that no longer exists.
+
+    # After changing the hostname the CLI prompt changes (e.g. Switch# → Core01#).
+    # set_base_prompt() reads the new prompt so netmiko doesn't time out waiting
+    # for the old one.
     conn.set_base_prompt()
 
-    # -- Base configuration --------------------------------------------------------
-    # Applies domain name, local credentials, console/enable passwords, and
-    # service password-encryption from the template file.
+    # -- Base configuration ------------------------------------------------------
+    # Sends every line in base_config.txt as a config command.
+    # Covers: domain name, local user, console password, enable secret,
+    # and service password-encryption.
     output = conn.send_config_from_file("configs/base_config.txt")
     print(output)
 
-    # -- VLAN creation -------------------------------------------------------------
+    # -- VLAN creation -----------------------------------------------------------
     vlan_count = int(input("How many VLANs do you want to create? "))
     for i in range(vlan_count):
         confirm = input(f"Create VLAN {i + 1}? (y/n): ").strip().lower()
         if confirm != "y":
             continue
 
-        vlan_id = input(f"  VLAN ID: ").strip()
-        vlan_name = input(f"  VLAN name: ").strip()
-        description = input(f"  Description: ").strip()
+        vlan_id     = input("  VLAN ID: ").strip()
+        vlan_name   = input("  VLAN name: ").strip()
+        description = input("  Description: ").strip()
 
         conn.send_config_set([
             f"vlan {vlan_id}",
@@ -68,6 +81,7 @@ with ConnectHandler(**device) as conn:
         ])
         print(f"  VLAN {vlan_id} ({vlan_name}) created.")
 
-    # -- Save configuration --------------------------------------------------------
+    # -- Save configuration ------------------------------------------------------
+    # Writes the running config to startup config (NVRAM) so it survives reboot.
     conn.save_config()
     print("Configuration saved successfully.")

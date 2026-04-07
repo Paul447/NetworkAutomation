@@ -1,16 +1,26 @@
 """
-Utility script to discover available serial/TTY ports on the system.
-Run this before configuring a device to find the correct port name
-(e.g. /dev/tty.usbserial-1130) to use in the configuration scripts.
+find_serial_ports.py
+--------------------
+Utility script to list all serial/TTY ports currently available on the system.
+
+Run this before any configuration script to identify the correct port name for
+your USB-to-serial console cable (e.g. /dev/tty.usbserial-1130 on macOS,
+/dev/ttyUSB0 on Linux).
 
 Usage:
     python scripts/find_serial_ports.py
+
+Example output:
+    Available serial ports:
+      /dev/tty.usbserial-1130
+      /dev/tty.Bluetooth-Incoming-Port
 """
 
 import glob
 
 
-def find_serial_ports():
+def find_serial_ports() -> None:
+    """Print all serial/TTY ports detected on the system."""
     ports = glob.glob("/dev/tty.*")
     if ports:
         print("Available serial ports:")
